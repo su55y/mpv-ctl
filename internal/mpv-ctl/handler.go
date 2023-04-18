@@ -23,6 +23,17 @@ func (h *handler) createRouter() http.Handler {
 	return router
 }
 
+func writeDefaultResponse(w *http.ResponseWriter) {
+	if err := json.NewEncoder(*w).Encode(ResponseModel{true}); err != nil {
+		http.Error(*w, err.Error(), http.StatusInternalServerError)
+	}
+}
+func writeError(w *http.ResponseWriter, msg string) {
+	if err := json.NewEncoder(*w).Encode(ErrorResponse{msg, false}); err != nil {
+		http.Error(*w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 func middleHandler() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -37,16 +48,6 @@ func middleHandler() func(http.Handler) http.Handler {
 	}
 }
 
-func writeDefaultResponse(w *http.ResponseWriter) {
-	if err := json.NewEncoder(*w).Encode(ResponseModel{true}); err != nil {
-		http.Error(*w, err.Error(), http.StatusInternalServerError)
-	}
-}
-func writeError(w *http.ResponseWriter, msg string) {
-	if err := json.NewEncoder(*w).Encode(ErrorResponse{msg, false}); err != nil {
-		http.Error(*w, err.Error(), http.StatusInternalServerError)
-	}
-}
 func (h *handler) appendHandler(w http.ResponseWriter, r *http.Request) {
 	if !r.URL.Query().Has("path") {
 		writeError(&w, "'path' param should be present")
