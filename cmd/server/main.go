@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -13,6 +11,7 @@ import (
 	"time"
 
 	"github.com/blang/mpv"
+	mpvctl "github.com/su55y/mpv-ctl/internal/mpv-ctl"
 )
 
 var (
@@ -44,7 +43,7 @@ func init() {
 	flag.StringVar(&port, "p", DEFAULT_PORT, "port")
 
 	flag.Parse()
-	mpvc = mpv.Client{LLClient: mpv.NewIPCClient(socketPath)}
+
 }
 
 func main() {
@@ -56,12 +55,9 @@ func main() {
 	}
 	defer logFile.Close()
 
-	router := http.NewServeMux()
-	router.HandleFunc("/append", appendHandler)
-
 	server := &http.Server{
 		Addr:         ":" + port,
-		Handler:      middleHandler()(router),
+		Handler:      mpvctl.GetNewHandler(&mpv.Client{LLClient: mpv.NewIPCClient(socketPath)}),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  15 * time.Second,
@@ -93,43 +89,4 @@ func main() {
 
 	<-done
 	log.Println("Server stopped")
-}
-
-func writeDefaultResponse(w *http.ResponseWriter) {
-	if err := json.NewEncoder(*w).Encode(ResponseModel{true}); err != nil {
-		http.Error(*w, err.Error(), http.StatusInternalServerError)
-	}
-}
-func writeError(w *http.ResponseWriter, msg string) {
-	if err := json.NewEncoder(*w).Encode(ErrorResponse{msg, false}); err != nil {
-		http.Error(*w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-func middleHandler() func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			log.Printf("%s %s\n", r.Method, r.RequestURI)
-			if r.Method != http.MethodGet {
-				writeError(&w, "Method Not Allowed")
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-func appendHandler(w http.ResponseWriter, r *http.Request) {
-	if !r.URL.Query().Has("path") {
-		writeError(&w, "'path' param should be present")
-		return
-	}
-	if err := mpvc.Loadfile(r.URL.Query().Get("path"), mpv.LoadFileModeAppendPlay); err != nil {
-		errorMsg := fmt.Sprintf("append error: %s", err.Error())
-		log.Println(errorMsg)
-		writeError(&w, errorMsg)
-	} else {
-		writeDefaultResponse(&w)
-	}
 }
