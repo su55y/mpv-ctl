@@ -46,8 +46,10 @@ func main() {
 	defer logFile.Close()
 
 	server := &http.Server{
-		Addr:         ":" + port,
-		Handler:      mpvctl.GetNewHandler(&mpv.Client{LLClient: mpv.NewIPCClient(socketPath)}),
+		Addr: ":" + port,
+		Handler: mpvctl.GetNewHandler(
+			mpvctl.NewService(&mpv.Client{LLClient: mpv.NewIPCClient(socketPath)}),
+		),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  15 * time.Second,
