@@ -19,7 +19,6 @@ var (
 	port       string
 	socketPath string
 	healthy    int32
-	mpvc       mpv.Client
 )
 
 const (
@@ -27,15 +26,6 @@ const (
 	DEFAULT_LOG_FILE    = "/tmp/mpv-ctl.log"
 	DEFAULT_PORT        = "5000"
 )
-
-type ErrorResponse struct {
-	Error string `json:"error"`
-	Ok    bool   `json:"ok"`
-}
-
-type ResponseModel struct {
-	Ok bool `json:"ok"`
-}
 
 func init() {
 	flag.StringVar(&socketPath, "s", DEFAULT_SOCKET_PATH, "socket path")
