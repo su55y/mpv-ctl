@@ -8,19 +8,24 @@ import (
 	"github.com/blang/mpv"
 )
 
-type methodType uint8
+type controlType string
 
 const (
-	AppendVideo = iota
-	LoadPlaylist
+	Pause controlType = "pause"
 )
 const (
-	MissedUrlErrMsg = "'url' param should be present: (%+v)"
+	MissedUrlErrMsg  = "'url' param should be included in query: %v"
+	MissedCmdErrMsg  = "'cmd' param should be included in query: %v"
+	InvalidCmdErrMsg = "invalid 'cmd' value: %v"
 )
 
-type ParamsType1 struct {
+type LoaderParams struct {
 	url  string
 	flag string
+}
+
+type ControlParams struct {
+	cmd controlType
 }
 
 type Service struct {
@@ -34,18 +39,22 @@ func NewService(client *mpv.Client) *Service {
 }
 
 func (s *Service) LoadFile(query url.Values, w *http.ResponseWriter) {
-	handleMethodType1(query, s.mpvc.Loadfile)(w)
+	handleLoaderMethod(query, s.mpvc.Loadfile)(w)
 }
 
 func (s *Service) LoadPlaylist(query url.Values, w *http.ResponseWriter) {
-	handleMethodType1(query, s.mpvc.LoadList)(w)
+	handleLoaderMethod(query, s.mpvc.LoadList)(w)
 }
 
-func handleMethodType1(
+func (s *Service) Control(query url.Values, w *http.ResponseWriter) {
+	s.handleControls(query)(w)
+}
+
+func handleLoaderMethod(
 	query url.Values,
 	callback func(string, string) error,
 ) func(*http.ResponseWriter) {
-	params, err := parseParamsType1(query)
+	params, err := parseLoaderParams(query)
 	if err != nil {
 		return func(w *http.ResponseWriter) { writeError(w, err.Error()) }
 	}
@@ -55,7 +64,18 @@ func handleMethodType1(
 	return func(w *http.ResponseWriter) { writeDefaultResponse(w) }
 }
 
-func parseParamsType1(query url.Values) (*ParamsType1, error) {
+func (s *Service) handleControls(query url.Values) func(*http.ResponseWriter) {
+	callback, err := s.parseControlParams(query)
+	if err != nil {
+		return func(w *http.ResponseWriter) { writeError(w, err.Error()) }
+	}
+	if err := callback(); err != nil {
+		return func(w *http.ResponseWriter) { writeError(w, err.Error()) }
+	}
+	return func(w *http.ResponseWriter) { writeDefaultResponse(w) }
+}
+
+func parseLoaderParams(query url.Values) (*LoaderParams, error) {
 	if !query.Has("url") {
 		return nil, fmt.Errorf(MissedUrlErrMsg, query)
 	}
@@ -68,5 +88,25 @@ func parseParamsType1(query url.Values) (*ParamsType1, error) {
 			flag = mpv.LoadFileModeAppendPlay
 		}
 	}
-	return &ParamsType1{query.Get("url"), flag}, nil
+	return &LoaderParams{query.Get("url"), flag}, nil
+}
+
+func (s *Service) parseControlParams(query url.Values) (func() error, error) {
+	if !query.Has("cmd") {
+		return nil, fmt.Errorf(MissedCmdErrMsg, query)
+	}
+	switch controlType(query.Get("cmd")) {
+	case Pause:
+		return s.pauseCycle, nil
+	default:
+		return nil, fmt.Errorf(InvalidCmdErrMsg, query)
+	}
+}
+
+func (s *Service) pauseCycle() error {
+	pauseState, err := s.mpvc.Pause()
+	if err != nil {
+		return err
+	}
+	return s.mpvc.SetPause(!pauseState)
 }

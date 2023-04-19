@@ -17,6 +17,8 @@ func GetNewHandler(service *Service) http.Handler {
 func (h *handler) createRouter() http.Handler {
 	router := http.NewServeMux()
 	router.HandleFunc("/append", h.appendHandler)
+	router.HandleFunc("/playlist", h.loadPlaylistHandler)
+	router.HandleFunc("/control", h.controlHandler)
 	return router
 }
 
@@ -52,4 +54,8 @@ func (h *handler) appendHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) loadPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 	h.service.LoadPlaylist(r.URL.Query(), &w)
+}
+
+func (h *handler) controlHandler(w http.ResponseWriter, r *http.Request) {
+	h.service.Control(r.URL.Query(), &w)
 }
