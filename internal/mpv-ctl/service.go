@@ -11,7 +11,11 @@ import (
 type controlType string
 
 const (
-	Pause controlType = "pause"
+	Pause      controlType = "pause"
+	PauseCycle controlType = "pause-cycle"
+	Play       controlType = "play"
+	Next       controlType = "next"
+	Prev       controlType = "prev"
 )
 const (
 	MissedUrlErrMsg  = "'url' param should be included in query: %v"
@@ -97,7 +101,15 @@ func (s *Service) parseControlParams(query url.Values) (func() error, error) {
 	}
 	switch controlType(query.Get("cmd")) {
 	case Pause:
+		return s.pause, nil
+	case PauseCycle:
 		return s.pauseCycle, nil
+	case Play:
+		return s.play, nil
+	case Next:
+		return s.next, nil
+	case Prev:
+		return s.prev, nil
 	default:
 		return nil, fmt.Errorf(InvalidCmdErrMsg, query)
 	}
@@ -109,4 +121,20 @@ func (s *Service) pauseCycle() error {
 		return err
 	}
 	return s.mpvc.SetPause(!pauseState)
+}
+
+func (s *Service) play() error {
+	return s.mpvc.SetPause(false)
+}
+
+func (s *Service) pause() error {
+	return s.mpvc.SetPause(true)
+}
+
+func (s *Service) next() error {
+	return s.mpvc.PlaylistNext()
+}
+
+func (s *Service) prev() error {
+	return s.mpvc.PlaylistPrevious()
 }
