@@ -7,10 +7,10 @@ import (
 )
 
 type handler struct {
-	service *Service
+	service IHTTPService
 }
 
-func GetNewHandler(service *Service) http.Handler {
+func GetNewHandler(service IHTTPService) http.Handler {
 	return middleHandler()((&handler{service}).createRouter())
 }
 
@@ -49,13 +49,17 @@ func middleHandler() func(http.Handler) http.Handler {
 }
 
 func (h *handler) appendHandler(w http.ResponseWriter, r *http.Request) {
-	h.service.LoadFile(r.URL.Query(), &w)
+	q := r.URL.Query()
+	q.Set("type", "video")
+	h.service.LoadFileHttpHandler(q, &w)
 }
 
 func (h *handler) loadPlaylistHandler(w http.ResponseWriter, r *http.Request) {
-	h.service.LoadPlaylist(r.URL.Query(), &w)
+	q := r.URL.Query()
+	q.Set("type", "playlist")
+	h.service.LoadFileHttpHandler(q, &w)
 }
 
 func (h *handler) controlHandler(w http.ResponseWriter, r *http.Request) {
-	h.service.Control(r.URL.Query(), &w)
+	h.service.ControlHttpHandler(r.URL.Query(), &w)
 }
