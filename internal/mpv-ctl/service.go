@@ -13,6 +13,10 @@ type IHTTPService interface {
 	ControlHttpHandler(url.Values, *http.ResponseWriter)
 }
 
+type ICLIService interface {
+	ControlCliHandler(string) error
+}
+
 type controlType string
 
 type LoaderType struct {
@@ -78,6 +82,13 @@ func (s *Service) ControlHttpHandler(query url.Values, w *http.ResponseWriter) {
 	} else {
 		writeDefaultResponse(w)
 	}
+}
+
+func (s *Service) ControlCliHandler(cmd string) error {
+	if callback := s.chooseControlCallback(controlType(cmd)); callback != nil {
+		return callback()
+	}
+	return fmt.Errorf(InvalidCmdErrMsg, cmd)
 }
 
 func (s *Service) parseLoadUrlQuery(query url.Values) (*LoaderType, error) {
