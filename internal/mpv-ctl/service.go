@@ -15,6 +15,7 @@ type IHTTPService interface {
 
 type ICLIService interface {
 	ControlCliHandler(string) error
+	LoadFileCliHandler(string, string, string) error
 }
 
 type controlType string
@@ -69,6 +70,22 @@ func (s *Service) LoadFileHttpHandler(query url.Values, w *http.ResponseWriter) 
 	} else {
 		writeDefaultResponse(w)
 	}
+}
+
+func (s *Service) LoadFileCliHandler(path string, loadflag string, loadtype string) error {
+	if callback := s.chooseLoadCallback(loadtype); callback != nil {
+		flag := mpv.LoadFileModeReplace
+		switch loadflag {
+		case mpv.LoadFileModeAppend:
+			flag = mpv.LoadFileModeAppend
+		case mpv.LoadFileModeAppendPlay:
+			if loadtype == "video" {
+				flag = mpv.LoadFileModeAppendPlay
+			}
+		}
+		return callback(path, flag)
+	}
+	return fmt.Errorf("unkwnorn loadtype %v", loadtype)
 }
 
 func (s *Service) ControlHttpHandler(query url.Values, w *http.ResponseWriter) {
