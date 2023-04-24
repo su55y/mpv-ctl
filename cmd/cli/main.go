@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
 
 	"github.com/blang/mpv"
 	mpvctl "github.com/su55y/mpv-ctl/internal/mpv-ctl"
@@ -14,20 +15,20 @@ const (
 
 var (
 	cmd      string
-	path     string
+	file     string
+	playlist string
 	loadflag string
-	loadtype string
 
 	client mpvctl.ICLIService
 )
 
 func parseArgs() {
 	flag.StringVar(&cmd, "cmd", "", "cmd (play/pause/pause-cycle/next/prev)")
-	flag.StringVar(&path, "path", "", "path")
+	flag.StringVar(&file, "video", "", "video path")
+	flag.StringVar(&playlist, "playlist", "", "playlist path")
 	flag.StringVar(&loadflag, "flag", "replace", "flag (append/append-play/replace)")
-	flag.StringVar(&loadtype, "type", "video", "(video/playlist)")
 	flag.Parse()
-	if len(cmd) == 0 && len(path) == 0 {
+	if len(cmd) == 0 && len(file) == 0 && len(playlist) == 0 {
 		flag.Usage()
 		log.Fatal("cmd or path are required")
 	}
@@ -42,20 +43,20 @@ func init() {
 	initClient()
 }
 
-func runCmd() {
-}
-
 func main() {
+	var err error
 	switch true {
 	case len(cmd) > 0:
-		if err := client.ControlCliHandler(cmd); err != nil {
-			log.Fatal(err)
-		}
-	case len(path) > 0:
-		if err := client.LoadFileCliHandler(path, loadflag, loadtype); err != nil {
-			log.Fatal(err)
-		}
+		err = client.ControlCliHandler(cmd)
+	case len(file) > 0:
+		err = client.LoadFileCliHandler(file, loadflag)
+	case len(playlist) > 0:
+		err = client.LoadListCliHandler(playlist, loadflag)
 	default:
 		flag.Usage()
+		os.Exit(1)
+	}
+	if err != nil {
+		log.Fatal(err)
 	}
 }

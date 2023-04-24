@@ -15,7 +15,8 @@ type IHTTPService interface {
 
 type ICLIService interface {
 	ControlCliHandler(string) error
-	LoadFileCliHandler(string, string, string) error
+	LoadFileCliHandler(string, string) error
+	LoadListCliHandler(string, string) error
 }
 
 type controlType string
@@ -49,6 +50,7 @@ const (
 const (
 	MissedUrlErrMsg       = "'url' param should be included in query: %v"
 	MissedCmdErrMsg       = "'cmd' param should be included in query: %v"
+	InvalidFlagErrMsg     = "invalid 'flag' value: %s"
 	InvalidCmdErrMsg      = "invalid 'cmd' value: %v"
 	InvalidUrlQueryErrMsg = "invalid url query: %v"
 )
@@ -72,20 +74,20 @@ func (s *Service) LoadFileHttpHandler(query url.Values, w *http.ResponseWriter) 
 	}
 }
 
-func (s *Service) LoadFileCliHandler(path string, loadflag string, loadtype string) error {
-	if callback := s.chooseLoadCallback(loadtype); callback != nil {
-		flag := mpv.LoadFileModeReplace
-		switch loadflag {
-		case mpv.LoadFileModeAppend:
-			flag = mpv.LoadFileModeAppend
-		case mpv.LoadFileModeAppendPlay:
-			if loadtype == "video" {
-				flag = mpv.LoadFileModeAppendPlay
-			}
-		}
-		return callback(path, flag)
+func (s *Service) LoadFileCliHandler(path string, flag string) error {
+	switch flag {
+	case mpv.LoadFileModeReplace, mpv.LoadFileModeAppend, mpv.LoadFileModeAppendPlay:
+		return s.mpvc.Loadfile(path, flag)
 	}
-	return fmt.Errorf("unkwnorn loadtype %v", loadtype)
+	return fmt.Errorf(InvalidFlagErrMsg, flag)
+}
+
+func (s *Service) LoadListCliHandler(path string, flag string) error {
+	switch flag {
+	case mpv.LoadListModeReplace, mpv.LoadListModeAppend:
+		return s.mpvc.LoadList(path, flag)
+	}
+	return fmt.Errorf(InvalidFlagErrMsg, flag)
 }
 
 func (s *Service) ControlHttpHandler(query url.Values, w *http.ResponseWriter) {
