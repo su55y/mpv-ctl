@@ -18,19 +18,37 @@ var (
 	file     string
 	playlist string
 	loadflag string
+	set      string
+	value    string
+	get      string
 
 	client mpvctl.ICLIService
 )
+
+func checkArgs() bool {
+	for _, arg := range []string{cmd, file, playlist, get} {
+		if len(arg) > 0 {
+			return true
+		}
+	}
+	if len(set) > 0 && len(value) > 0 {
+		return true
+	}
+	return false
+}
 
 func parseArgs() {
 	flag.StringVar(&cmd, "cmd", "", "cmd (play/pause/pause-cycle/next/prev)")
 	flag.StringVar(&file, "video", "", "video path")
 	flag.StringVar(&playlist, "playlist", "", "playlist path")
 	flag.StringVar(&loadflag, "flag", "replace", "flag (append/append-play/replace)")
+	flag.StringVar(&set, "set", "", "set property (property required)")
+	flag.StringVar(&value, "value", "", "property value")
+	flag.StringVar(&get, "get", "", "get property")
 	flag.Parse()
-	if len(cmd) == 0 && len(file) == 0 && len(playlist) == 0 {
+	if !checkArgs() {
 		flag.Usage()
-		log.Fatal("cmd or path are required")
+		os.Exit(1)
 	}
 }
 
@@ -52,6 +70,10 @@ func main() {
 		err = client.LoadFileCliHandler(file, loadflag)
 	case len(playlist) > 0:
 		err = client.LoadListCliHandler(playlist, loadflag)
+	case len(set) > 0:
+		client.SetterCliHandler(set, value)
+	case len(get) > 0:
+		client.GetterCliHandler(get)
 	default:
 		flag.Usage()
 		os.Exit(1)

@@ -17,6 +17,8 @@ type ICLIService interface {
 	ControlCliHandler(string) error
 	LoadFileCliHandler(string, string) error
 	LoadListCliHandler(string, string) error
+	SetterCliHandler(string, interface{})
+	GetterCliHandler(string)
 }
 
 type controlType string
@@ -103,11 +105,42 @@ func (s *Service) ControlHttpHandler(query url.Values, w *http.ResponseWriter) {
 	}
 }
 
+func (s *Service) SetterCliHandler(key string, value interface{}) {
+	if err := s.setProperty(key, value); err != nil {
+		fmt.Println(err)
+	}
+}
+
+func (s *Service) GetterCliHandler(key string) {
+	value, err := s.getProperty(key)
+	switch err {
+	case nil:
+		fmt.Print(value)
+	default:
+		fmt.Println(err)
+	}
+
+}
+
 func (s *Service) ControlCliHandler(cmd string) error {
 	if callback := s.chooseControlCallback(controlType(cmd)); callback != nil {
 		return callback()
 	}
 	return fmt.Errorf(InvalidCmdErrMsg, cmd)
+}
+
+func (s *Service) setProperty(key string, value interface{}) error {
+	// TODO cast value to type 🤨
+	return s.mpvc.SetProperty(key, value)
+}
+
+func (s *Service) getProperty(key string) (string, error) {
+	if value, err := s.mpvc.GetProperty(key); err != nil {
+		return "", err
+	} else if len(value) > 0 {
+		return value, nil
+	}
+	return "", fmt.Errorf("'%s' property not found", key)
 }
 
 func (s *Service) parseLoadUrlQuery(query url.Values) (*LoaderType, error) {
