@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strconv"
 
 	"github.com/blang/mpv"
 )
@@ -17,7 +19,7 @@ type ICLIService interface {
 	ControlCliHandler(string) error
 	LoadFileCliHandler(string, string) error
 	LoadListCliHandler(string, string) error
-	SetterCliHandler(string, interface{})
+	SetterCliHandler(string, string)
 	GetterCliHandler(string)
 }
 
@@ -50,11 +52,17 @@ const (
 )
 
 const (
-	MissedUrlErrMsg       = "'url' param should be included in query: %v"
-	MissedCmdErrMsg       = "'cmd' param should be included in query: %v"
-	InvalidFlagErrMsg     = "invalid 'flag' value: %s"
-	InvalidCmdErrMsg      = "invalid 'cmd' value: %v"
-	InvalidUrlQueryErrMsg = "invalid url query: %v"
+	MissedUrlErrMsg        = "'url' param should be included in query: %v"
+	MissedCmdErrMsg        = "'cmd' param should be included in query: %v"
+	InvalidFlagErrMsg      = "invalid 'flag' value: %s"
+	InvalidCmdErrMsg       = "invalid 'cmd' value: %v"
+	InvalidUrlQueryErrMsg  = "invalid url query: %v"
+	PropertyNotFoundErrMsg = "'%s' propertyn not found"
+)
+
+var (
+	rxBoolProperty = regexp.MustCompile(`^(t|f|true|false)$`)
+	rxNumProperty  = regexp.MustCompile(`^(\d+)$`)
 )
 
 func NewService(client *mpv.Client) *Service {
@@ -105,19 +113,26 @@ func (s *Service) ControlHttpHandler(query url.Values, w *http.ResponseWriter) {
 	}
 }
 
-func (s *Service) SetterCliHandler(key string, value interface{}) {
-	if err := s.setProperty(key, value); err != nil {
+func (s *Service) SetterCliHandler(key string, value string) {
+	val, err := parsePropertyValue(value)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if err := s.mpvc.SetProperty(key, val); err != nil {
 		fmt.Println(err)
 	}
 }
 
 func (s *Service) GetterCliHandler(key string) {
-	value, err := s.getProperty(key)
-	switch err {
-	case nil:
+	value, err := s.mpvc.GetProperty(key)
+	switch {
+	case len(value) > 0 && err == nil:
 		fmt.Print(value)
-	default:
+	case err != nil:
 		fmt.Println(err)
+	default:
+		fmt.Printf(PropertyNotFoundErrMsg, key)
 	}
 
 }
@@ -127,20 +142,6 @@ func (s *Service) ControlCliHandler(cmd string) error {
 		return callback()
 	}
 	return fmt.Errorf(InvalidCmdErrMsg, cmd)
-}
-
-func (s *Service) setProperty(key string, value interface{}) error {
-	// TODO cast value to type 🤨
-	return s.mpvc.SetProperty(key, value)
-}
-
-func (s *Service) getProperty(key string) (string, error) {
-	if value, err := s.mpvc.GetProperty(key); err != nil {
-		return "", err
-	} else if len(value) > 0 {
-		return value, nil
-	}
-	return "", fmt.Errorf("'%s' property not found", key)
 }
 
 func (s *Service) parseLoadUrlQuery(query url.Values) (*LoaderType, error) {
@@ -194,6 +195,16 @@ func (s *Service) chooseControlCallback(ct controlType) func() error {
 		return s.prev
 	}
 	return nil
+}
+
+func parsePropertyValue(val string) (interface{}, error) {
+	switch {
+	case rxBoolProperty.MatchString(val):
+		return strconv.ParseBool(val)
+	case rxNumProperty.MatchString(val):
+		return strconv.Atoi(val)
+	}
+	return val, nil
 }
 
 func (s *Service) pauseCycle() error {
