@@ -8,3 +8,9 @@ type ErrorResponse struct {
 type ResponseModel struct {
 	Ok bool `json:"ok"`
 }
+
+type PropertyResponse struct {
+	Ok    bool        `json:"ok"`
+	Name  string      `json:"name"`
+	Value interface{} `json:"value"`
+}

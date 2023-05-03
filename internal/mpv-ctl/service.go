@@ -13,6 +13,7 @@ import (
 type IHTTPService interface {
 	LoadFileHttpHandler(url.Values, *http.ResponseWriter)
 	ControlHttpHandler(url.Values, *http.ResponseWriter)
+	PropertyHttpHandler(url.Values, *http.ResponseWriter)
 }
 
 type ICLIService interface {
@@ -113,6 +114,42 @@ func (s *Service) ControlHttpHandler(query url.Values, w *http.ResponseWriter) {
 	}
 }
 
+func (s *Service) ControlCliHandler(cmd string) error {
+	if callback := s.chooseControlCallback(controlType(cmd)); callback != nil {
+		return callback()
+	}
+	return fmt.Errorf(InvalidCmdErrMsg, cmd)
+}
+
+func (s *Service) PropertyHttpHandler(query url.Values, w *http.ResponseWriter) {
+	if query.Has("type") {
+		key := query.Get("name")
+		if len(key) == 0 {
+			writeError(w, fmt.Sprintf("invalid 'name' value '%s'", key))
+			return
+		}
+		switch query.Get("type") {
+		case "get":
+			if val, err := s.mpvc.GetProperty(key); err != nil {
+				writeError(w, err.Error())
+			} else {
+				writePropertyResponse(w, PropertyResponse{true, key, val})
+			}
+		case "set":
+			val, err := parsePropertyValue(query.Get("value"))
+			if err != nil {
+				writeError(w, err.Error())
+				return
+			}
+			if err := s.mpvc.SetProperty(key, val); err != nil {
+				writeError(w, err.Error())
+			} else {
+				writeDefaultResponse(w)
+			}
+		}
+	}
+}
+
 func (s *Service) SetterCliHandler(key string, value string) {
 	val, err := parsePropertyValue(value)
 	if err != nil {
@@ -135,13 +172,6 @@ func (s *Service) GetterCliHandler(key string) {
 		fmt.Printf(PropertyNotFoundErrMsg, key)
 	}
 
-}
-
-func (s *Service) ControlCliHandler(cmd string) error {
-	if callback := s.chooseControlCallback(controlType(cmd)); callback != nil {
-		return callback()
-	}
-	return fmt.Errorf(InvalidCmdErrMsg, cmd)
 }
 
 func (s *Service) parseLoadUrlQuery(query url.Values) (*LoaderType, error) {

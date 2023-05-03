@@ -19,11 +19,18 @@ func (h *handler) createRouter() http.Handler {
 	router.HandleFunc("/append", h.appendHandler)
 	router.HandleFunc("/playlist", h.loadPlaylistHandler)
 	router.HandleFunc("/control", h.controlHandler)
+	router.HandleFunc("/set", h.setPropertyHandler)
+	router.HandleFunc("/get", h.getPropertyHandler)
 	return router
 }
 
 func writeDefaultResponse(w *http.ResponseWriter) {
 	if err := json.NewEncoder(*w).Encode(ResponseModel{true}); err != nil {
+		http.Error(*w, err.Error(), http.StatusInternalServerError)
+	}
+}
+func writePropertyResponse(w *http.ResponseWriter, resp PropertyResponse) {
+	if err := json.NewEncoder(*w).Encode(resp); err != nil {
 		http.Error(*w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -62,4 +69,16 @@ func (h *handler) loadPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) controlHandler(w http.ResponseWriter, r *http.Request) {
 	h.service.ControlHttpHandler(r.URL.Query(), &w)
+}
+
+func (h *handler) setPropertyHandler(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	q.Set("type", "set")
+	h.service.PropertyHttpHandler(q, &w)
+}
+
+func (h *handler) getPropertyHandler(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	q.Set("type", "get")
+	h.service.PropertyHttpHandler(q, &w)
 }
