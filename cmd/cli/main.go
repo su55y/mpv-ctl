@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/blang/mpv"
 	mpvctl "github.com/su55y/mpv-ctl/internal/mpv-ctl"
 )
 
@@ -14,13 +13,14 @@ const (
 )
 
 var (
-	cmd      string
-	file     string
-	playlist string
-	loadflag string
-	set      string
-	value    string
-	get      string
+	cmd        string
+	file       string
+	playlist   string
+	loadflag   string
+	set        string
+	value      string
+	get        string
+	socketPath string
 
 	client ICLIService
 )
@@ -53,6 +53,7 @@ func parseArgs() {
 	flag.StringVar(&set, "set", "", "set property (property required)")
 	flag.StringVar(&value, "value", "", "property value")
 	flag.StringVar(&get, "get", "", "get property")
+	flag.StringVar(&socketPath, "sock", DEFAULT_SOCKET_PATH, "socket path")
 	flag.Parse()
 	if !checkArgs() {
 		flag.Usage()
@@ -61,7 +62,7 @@ func parseArgs() {
 }
 
 func initClient() {
-	client = mpvctl.NewService(&mpv.Client{LLClient: mpv.NewIPCClient(DEFAULT_SOCKET_PATH)})
+	client = mpvctl.NewService(socketPath)
 }
 
 func init() {

@@ -2,8 +2,10 @@ package mpvctl
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 
@@ -52,9 +54,16 @@ var (
 	rxNumProperty  = regexp.MustCompile(`^(\d+)$`)
 )
 
-func NewService(client *mpv.Client) *Service {
+func NewService(socketPath string) *Service {
+	stat, err := os.Stat(socketPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if stat.Mode()&os.ModeSocket == 0 {
+		log.Fatal(fmt.Sprintf("%#v not a socket file", socketPath))
+	}
 	return &Service{
-		mpvc: client,
+		mpvc: mpv.NewClient(mpv.NewIPCClient(socketPath)),
 	}
 }
 
