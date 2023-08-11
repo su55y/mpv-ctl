@@ -4,7 +4,14 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"net/url"
 )
+
+type IHTTPService interface {
+	LoadFileHttpHandler(url.Values, *http.ResponseWriter)
+	ControlHttpHandler(url.Values, *http.ResponseWriter)
+	PropertyHttpHandler(url.Values, *http.ResponseWriter)
+}
 
 type handler struct {
 	service IHTTPService

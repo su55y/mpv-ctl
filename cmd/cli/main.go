@@ -22,8 +22,16 @@ var (
 	value    string
 	get      string
 
-	client mpvctl.ICLIService
+	client ICLIService
 )
+
+type ICLIService interface {
+	ControlCliHandler(string) error
+	LoadFileCliHandler(string, string) error
+	LoadListCliHandler(string, string) error
+	SetterCliHandler(string, string)
+	GetterCliHandler(string)
+}
 
 func checkArgs() bool {
 	for _, arg := range []string{cmd, file, playlist, get} {

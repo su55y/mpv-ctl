@@ -10,20 +10,6 @@ import (
 	"github.com/blang/mpv"
 )
 
-type IHTTPService interface {
-	LoadFileHttpHandler(url.Values, *http.ResponseWriter)
-	ControlHttpHandler(url.Values, *http.ResponseWriter)
-	PropertyHttpHandler(url.Values, *http.ResponseWriter)
-}
-
-type ICLIService interface {
-	ControlCliHandler(string) error
-	LoadFileCliHandler(string, string) error
-	LoadListCliHandler(string, string) error
-	SetterCliHandler(string, string)
-	GetterCliHandler(string)
-}
-
 type controlType string
 
 type LoaderType struct {
