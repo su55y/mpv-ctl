@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -29,8 +30,8 @@ type ICLIService interface {
 	ControlCliHandler(string) error
 	LoadFileCliHandler(string, string) error
 	LoadListCliHandler(string, string) error
-	SetterCliHandler(string, string)
-	GetterCliHandler(string)
+	SetProperty(string, string) error
+	GetProperty(string) (string, error)
 }
 
 func checkArgs() bool {
@@ -80,9 +81,15 @@ func main() {
 	case len(playlist) > 0:
 		err = client.LoadListCliHandler(playlist, loadflag)
 	case len(set) > 0:
-		client.SetterCliHandler(set, value)
+		err = client.SetProperty(set, value)
 	case len(get) > 0:
-		client.GetterCliHandler(get)
+		if value, err := client.GetProperty(get); len(value) > 0 && err == nil {
+			fmt.Print(value)
+		} else if err != nil {
+			fmt.Println(err.Error())
+		} else {
+			fmt.Printf("property %+s not found\n", get)
+		}
 	default:
 		flag.Usage()
 		os.Exit(1)

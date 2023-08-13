@@ -46,7 +46,7 @@ func main() {
 
 	server := &http.Server{
 		Addr: ":" + port,
-		Handler: mpvctl.GetNewHandler(
+		Handler: mpvctl.NewHandler(
 			mpvctl.NewService(socketPath),
 		),
 		ReadTimeout:  5 * time.Second,

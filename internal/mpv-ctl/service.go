@@ -57,10 +57,10 @@ var (
 func NewService(socketPath string) *Service {
 	stat, err := os.Stat(socketPath)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("check socket error: %v", err)
 	}
 	if stat.Mode()&os.ModeSocket == 0 {
-		log.Fatal(fmt.Sprintf("%#v not a socket file", socketPath))
+		log.Fatalf("%#v not a socket file", socketPath)
 	}
 	return &Service{
 		mpvc: mpv.NewClient(mpv.NewIPCClient(socketPath)),
@@ -109,64 +109,26 @@ func (s *Service) ControlHttpHandler(query url.Values, w *http.ResponseWriter) {
 	}
 }
 
+func (s *Service) SetProperty(key string, value string) error {
+	prop, err := parsePropertyValue(value)
+	if err != nil {
+		return err
+	}
+	if err := s.mpvc.SetProperty(key, prop); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Service) GetProperty(key string) (string, error) {
+	return s.mpvc.GetProperty(key)
+}
+
 func (s *Service) ControlCliHandler(cmd string) error {
 	if callback := s.chooseControlCallback(controlType(cmd)); callback != nil {
 		return callback()
 	}
 	return fmt.Errorf(InvalidCmdErrMsg, cmd)
-}
-
-func (s *Service) PropertyHttpHandler(query url.Values, w *http.ResponseWriter) {
-	if query.Has("type") {
-		key := query.Get("name")
-		if len(key) == 0 {
-			writeError(w, fmt.Sprintf("invalid 'name' value '%s'", key))
-			return
-		}
-		switch query.Get("type") {
-		case "get":
-			if val, err := s.mpvc.GetProperty(key); err != nil {
-				writeError(w, err.Error())
-			} else {
-				writePropertyResponse(w, PropertyResponse{true, key, val})
-			}
-		case "set":
-			val, err := parsePropertyValue(query.Get("value"))
-			if err != nil {
-				writeError(w, err.Error())
-				return
-			}
-			if err := s.mpvc.SetProperty(key, val); err != nil {
-				writeError(w, err.Error())
-			} else {
-				writeDefaultResponse(w)
-			}
-		}
-	}
-}
-
-func (s *Service) SetterCliHandler(key string, value string) {
-	val, err := parsePropertyValue(value)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	if err := s.mpvc.SetProperty(key, val); err != nil {
-		fmt.Println(err)
-	}
-}
-
-func (s *Service) GetterCliHandler(key string) {
-	value, err := s.mpvc.GetProperty(key)
-	switch {
-	case len(value) > 0 && err == nil:
-		fmt.Print(value)
-	case err != nil:
-		fmt.Println(err)
-	default:
-		fmt.Printf(PropertyNotFoundErrMsg, key)
-	}
-
 }
 
 func (s *Service) parseLoadUrlQuery(query url.Values) (*LoaderType, error) {
