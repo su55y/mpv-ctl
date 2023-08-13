@@ -56,24 +56,19 @@ func NewService(socketPath string) *Service {
 	}
 }
 
-func (s *Service) LoadFile(path, flag string) error {
+func (s *Service) Load(path, flag string, list bool) error {
 	if len(flag) == 0 {
 		flag = mpv.LoadFileModeReplace
 	}
 	switch flag {
 	case mpv.LoadFileModeReplace, mpv.LoadFileModeAppend, mpv.LoadFileModeAppendPlay:
+		if list && flag == mpv.LoadFileModeAppendPlay {
+			return fmt.Errorf("flag %+s not allowed for lists", flag)
+		}
+		if list {
+			return s.mpvc.LoadList(path, flag)
+		}
 		return s.mpvc.Loadfile(path, flag)
-	}
-	return fmt.Errorf("invalid 'flag' value: %s", flag)
-}
-
-func (s *Service) LoadList(path, flag string) error {
-	if len(flag) == 0 {
-		flag = mpv.LoadFileModeReplace
-	}
-	switch flag {
-	case mpv.LoadFileModeReplace, mpv.LoadFileModeAppend:
-		return s.mpvc.LoadList(path, flag)
 	}
 	return fmt.Errorf("invalid 'flag' value: %s", flag)
 }
@@ -81,15 +76,19 @@ func (s *Service) LoadList(path, flag string) error {
 func (s *Service) Control(cmd string) error {
 	switch controlType(cmd) {
 	case Pause:
-		return s.pause()
+		return s.mpvc.SetPause(true)
 	case PauseCycle:
-		return s.pauseCycle()
+		pauseState, err := s.mpvc.Pause()
+		if err != nil {
+			return err
+		}
+		return s.mpvc.SetPause(!pauseState)
 	case Play:
-		return s.play()
+		return s.mpvc.SetPause(false)
 	case Next:
-		return s.next()
+		return s.mpvc.PlaylistNext()
 	case Prev:
-		return s.prev()
+		return s.mpvc.PlaylistPrevious()
 	}
 	return fmt.Errorf("cmd %+s not implemented", cmd)
 }
@@ -117,28 +116,4 @@ func parsePropertyValue(val string) (interface{}, error) {
 		return strconv.Atoi(val)
 	}
 	return val, nil
-}
-
-func (s *Service) pauseCycle() error {
-	pauseState, err := s.mpvc.Pause()
-	if err != nil {
-		return err
-	}
-	return s.mpvc.SetPause(!pauseState)
-}
-
-func (s *Service) play() error {
-	return s.mpvc.SetPause(false)
-}
-
-func (s *Service) pause() error {
-	return s.mpvc.SetPause(true)
-}
-
-func (s *Service) next() error {
-	return s.mpvc.PlaylistNext()
-}
-
-func (s *Service) prev() error {
-	return s.mpvc.PlaylistPrevious()
 }
