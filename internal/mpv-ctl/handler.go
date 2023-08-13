@@ -8,8 +8,7 @@ import (
 )
 
 type IHTTPService interface {
-	LoadFile(string, string) error
-	LoadList(string, string) error
+	Load(string, string, bool) error
 	Control(string) error
 	SetProperty(string, string) error
 	GetProperty(string) (string, error)
@@ -53,7 +52,7 @@ func (h *handler) loadFileHandler(w http.ResponseWriter, r *http.Request) {
 		writeError(&w, "missing url parameter")
 		return
 	}
-	if err := h.service.LoadFile(query.Get("url"), query.Get("flag")); err != nil {
+	if err := h.service.Load(query.Get("url"), query.Get("flag"), false); err != nil {
 		writeError(&w, fmt.Sprintf("loadfile error: %v", err))
 		return
 	}
@@ -63,10 +62,10 @@ func (h *handler) loadFileHandler(w http.ResponseWriter, r *http.Request) {
 func (h *handler) loadPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	if !query.Has("url") {
-		writeError(&w, "missing url parameter")
+		writeError(&w, "missing 'url' parameter")
 		return
 	}
-	if err := h.service.LoadList(query.Get("url"), query.Get("flag")); err != nil {
+	if err := h.service.Load(query.Get("url"), query.Get("flag"), true); err != nil {
 		writeError(&w, fmt.Sprintf("loadlist error: %v", err))
 		return
 	}
@@ -76,7 +75,7 @@ func (h *handler) loadPlaylistHandler(w http.ResponseWriter, r *http.Request) {
 func (h *handler) controlHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	if !query.Has("cmd") {
-		writeError(&w, "missing cmd parameter")
+		writeError(&w, "missing 'cmd' parameter")
 		return
 	}
 	if err := h.service.Control(query.Get("cmd")); err != nil {
@@ -94,12 +93,12 @@ func (h *handler) getPropertyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	var key string
 	if key := query.Get("name"); len(key) == 0 {
-		writeError(&w, fmt.Sprintf("invalid property name %+s", key))
+		writeError(&w, fmt.Sprintf("invalid property name %#v", key))
 		return
 	}
 	prop, err := h.service.GetProperty(key)
 	if err != nil {
-		writeError(&w, fmt.Sprintf("can't get property %+s: %v", key, err))
+		writeError(&w, fmt.Sprintf("can't get property %#v: %v", key, err))
 		return
 	}
 	writePropertyResponse(&w, PropertyResponse{true, key, prop})
@@ -117,15 +116,15 @@ func (h *handler) setPropertyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	var key, prop string
 	if key := query.Get("name"); len(key) == 0 {
-		writeError(&w, fmt.Sprintf("invalid property 'name' %+s", key))
+		writeError(&w, fmt.Sprintf("invalid property 'name' %#v", key))
 		return
 	}
 	if prop = query.Get("value"); len(prop) == 0 {
-		writeError(&w, fmt.Sprintf("invalid property value %+s", prop))
+		writeError(&w, fmt.Sprintf("invalid property value %#v", prop))
 		return
 	}
 	if err := h.service.SetProperty(key, prop); err != nil {
-		writeError(&w, fmt.Sprintf("set property %+s (%+v) error: %v", key, prop, err))
+		writeError(&w, fmt.Sprintf("set property %#v (%#v) error: %v", key, prop, err))
 		return
 	}
 	writeDefaultResponse(&w)

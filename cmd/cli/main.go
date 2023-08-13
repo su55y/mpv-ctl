@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 
 	mpvctl "github.com/su55y/mpv-ctl/internal/mpv-ctl"
@@ -27,8 +26,7 @@ var (
 )
 
 type ICLIService interface {
-	LoadFile(string, string) error
-	LoadList(string, string) error
+	Load(string, string, bool) error
 	Control(string) error
 	SetProperty(string, string) error
 	GetProperty(string) (string, error)
@@ -77,14 +75,15 @@ func main() {
 	case len(cmd) > 0:
 		err = client.Control(cmd)
 	case len(file) > 0:
-		err = client.LoadFile(file, loadflag)
+		err = client.Load(file, loadflag, false)
 	case len(playlist) > 0:
-		err = client.LoadList(playlist, loadflag)
+		err = client.Load(playlist, loadflag, true)
 	case len(set) > 0:
 		err = client.SetProperty(set, value)
 	case len(get) > 0:
-		if value, err := client.GetProperty(get); len(value) > 0 && err == nil {
-			fmt.Print(value)
+		var prop string
+		if prop, err = client.GetProperty(get); len(prop) > 0 && err == nil {
+			fmt.Print(prop)
 		} else if err != nil {
 			fmt.Println(err.Error())
 		} else {
@@ -95,6 +94,7 @@ func main() {
 		os.Exit(1)
 	}
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }

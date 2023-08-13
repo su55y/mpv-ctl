@@ -70,7 +70,7 @@ func (s *Service) Load(path, flag string, list bool) error {
 		}
 		return s.mpvc.Loadfile(path, flag)
 	}
-	return fmt.Errorf("invalid 'flag' value: %s", flag)
+	return fmt.Errorf("invalid 'flag' value: %#v", flag)
 }
 
 func (s *Service) Control(cmd string) error {
