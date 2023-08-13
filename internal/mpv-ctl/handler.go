@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 )
 
 type IHTTPService interface {
-	LoadFileHttpHandler(url.Values, *http.ResponseWriter)
-	ControlHttpHandler(url.Values, *http.ResponseWriter)
+	LoadFile(string, string) error
+	LoadList(string, string) error
+	Control(string) error
 	SetProperty(string, string) error
 	GetProperty(string) (string, error)
 }
@@ -25,31 +25,12 @@ func NewHandler(service IHTTPService) http.Handler {
 
 func (h *handler) createRouter() http.Handler {
 	router := http.NewServeMux()
-	router.HandleFunc("/append", h.appendHandler)
+	router.HandleFunc("/append", h.loadFileHandler)
 	router.HandleFunc("/playlist", h.loadPlaylistHandler)
 	router.HandleFunc("/control", h.controlHandler)
 	router.HandleFunc("/set", h.setPropertyHandler)
 	router.HandleFunc("/get", h.getPropertyHandler)
 	return router
-}
-
-func writeResponse(w *http.ResponseWriter, resp interface{}) {
-	if err := json.NewEncoder(*w).Encode(resp); err != nil {
-		http.Error(*w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-func writeDefaultResponse(w *http.ResponseWriter) {
-	writeResponse(w, ResponseModel{true})
-}
-
-func writePropertyResponse(w *http.ResponseWriter, resp PropertyResponse) {
-	writeResponse(w, resp)
-}
-
-func writeError(w *http.ResponseWriter, msg string) {
-	log.Println(msg)
-	writeResponse(w, ErrorResponse{msg, false})
 }
 
 func middleHandler() func(http.Handler) http.Handler {
@@ -66,20 +47,43 @@ func middleHandler() func(http.Handler) http.Handler {
 	}
 }
 
-func (h *handler) appendHandler(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-	q.Set("type", "video")
-	h.service.LoadFileHttpHandler(q, &w)
+func (h *handler) loadFileHandler(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	if !query.Has("url") {
+		writeError(&w, "missing url parameter")
+		return
+	}
+	if err := h.service.LoadFile(query.Get("url"), query.Get("flag")); err != nil {
+		writeError(&w, fmt.Sprintf("loadfile error: %v", err))
+		return
+	}
+	writeDefaultResponse(&w)
 }
 
 func (h *handler) loadPlaylistHandler(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-	q.Set("type", "playlist")
-	h.service.LoadFileHttpHandler(q, &w)
+	query := r.URL.Query()
+	if !query.Has("url") {
+		writeError(&w, "missing url parameter")
+		return
+	}
+	if err := h.service.LoadList(query.Get("url"), query.Get("flag")); err != nil {
+		writeError(&w, fmt.Sprintf("loadlist error: %v", err))
+		return
+	}
+	writeDefaultResponse(&w)
 }
 
 func (h *handler) controlHandler(w http.ResponseWriter, r *http.Request) {
-	h.service.ControlHttpHandler(r.URL.Query(), &w)
+	query := r.URL.Query()
+	if !query.Has("cmd") {
+		writeError(&w, "missing cmd parameter")
+		return
+	}
+	if err := h.service.Control(query.Get("cmd")); err != nil {
+		writeError(&w, fmt.Sprintf("control error: %v", err))
+		return
+	}
+	writeDefaultResponse(&w)
 }
 
 func (h *handler) getPropertyHandler(w http.ResponseWriter, r *http.Request) {
@@ -125,4 +129,23 @@ func (h *handler) setPropertyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeDefaultResponse(&w)
+}
+
+func writeDefaultResponse(w *http.ResponseWriter) {
+	writeResponse(w, ResponseModel{true})
+}
+
+func writePropertyResponse(w *http.ResponseWriter, resp PropertyResponse) {
+	writeResponse(w, resp)
+}
+
+func writeError(w *http.ResponseWriter, msg string) {
+	log.Println(msg)
+	writeResponse(w, ErrorResponse{msg, false})
+}
+
+func writeResponse(w *http.ResponseWriter, resp interface{}) {
+	if err := json.NewEncoder(*w).Encode(resp); err != nil {
+		http.Error(*w, err.Error(), http.StatusInternalServerError)
+	}
 }

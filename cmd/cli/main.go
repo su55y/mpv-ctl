@@ -27,9 +27,9 @@ var (
 )
 
 type ICLIService interface {
-	ControlCliHandler(string) error
-	LoadFileCliHandler(string, string) error
-	LoadListCliHandler(string, string) error
+	LoadFile(string, string) error
+	LoadList(string, string) error
+	Control(string) error
 	SetProperty(string, string) error
 	GetProperty(string) (string, error)
 }
@@ -75,11 +75,11 @@ func main() {
 	var err error
 	switch true {
 	case len(cmd) > 0:
-		err = client.ControlCliHandler(cmd)
+		err = client.Control(cmd)
 	case len(file) > 0:
-		err = client.LoadFileCliHandler(file, loadflag)
+		err = client.LoadFile(file, loadflag)
 	case len(playlist) > 0:
-		err = client.LoadListCliHandler(playlist, loadflag)
+		err = client.LoadList(playlist, loadflag)
 	case len(set) > 0:
 		err = client.SetProperty(set, value)
 	case len(get) > 0:
