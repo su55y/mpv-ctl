@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	mpvctl "github.com/su55y/mpv-ctl/internal/mpv-ctl"
+	"github.com/su55y/mpv-ctl/internal/service"
 )
 
 const (
@@ -60,16 +60,9 @@ func parseArgs() {
 	}
 }
 
-func initClient() {
-	client = mpvctl.NewService(socketPath)
-}
-
-func init() {
-	parseArgs()
-	initClient()
-}
-
 func main() {
+	parseArgs()
+    var client ICLIService = service.NewService(socketPath)
 	var err error
 	switch true {
 	case len(cmd) > 0:

@@ -10,7 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	mpvctl "github.com/su55y/mpv-ctl/internal/mpv-ctl"
+	"github.com/su55y/mpv-ctl/internal/handler"
+	"github.com/su55y/mpv-ctl/internal/service"
 )
 
 var (
@@ -46,8 +47,8 @@ func main() {
 
 	server := &http.Server{
 		Addr: ":" + port,
-		Handler: mpvctl.NewHandler(
-			mpvctl.NewService(socketPath),
+		Handler: handler.NewHandler(
+			service.NewService(socketPath),
 		),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,

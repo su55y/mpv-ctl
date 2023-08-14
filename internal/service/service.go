@@ -1,4 +1,4 @@
-package mpvctl
+package service
 
 import (
 	"fmt"

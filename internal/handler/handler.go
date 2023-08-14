@@ -1,4 +1,4 @@
-package mpvctl
+package handler
 
 import (
 	"encoding/json"
@@ -6,6 +6,21 @@ import (
 	"log"
 	"net/http"
 )
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+	Ok    bool   `json:"ok"`
+}
+
+type ResponseModel struct {
+	Ok bool `json:"ok"`
+}
+
+type PropertyResponse struct {
+	Ok    bool        `json:"ok"`
+	Name  string      `json:"name"`
+	Value interface{} `json:"value"`
+}
 
 type IHTTPService interface {
 	Load(string, string, bool) error
