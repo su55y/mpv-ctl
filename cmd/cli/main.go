@@ -62,7 +62,7 @@ func parseArgs() {
 
 func main() {
 	parseArgs()
-    var client ICLIService = service.NewService(socketPath)
+	var client ICLIService = service.NewService(socketPath)
 	var err error
 	switch true {
 	case len(cmd) > 0:

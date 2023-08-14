@@ -27,16 +27,15 @@ const (
 	DEFAULT_PORT        = "5000"
 )
 
-func init() {
+func parseArgs() {
 	flag.StringVar(&socketPath, "s", DEFAULT_SOCKET_PATH, "socket path")
 	flag.StringVar(&logsPath, "l", DEFAULT_LOG_FILE, "log file path")
 	flag.StringVar(&port, "p", DEFAULT_PORT, "port")
-
 	flag.Parse()
-
 }
 
 func main() {
+	parseArgs()
 	logFile, err := os.OpenFile(logsPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		log.Printf("Failed to open log file: %s", err)
